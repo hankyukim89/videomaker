@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Video Maker</title>
+<style>
+:root{--bg:#101317;--card:#181d24;--card2:#1f2630;--border:#2a323d;--text:#e8ecf1;--muted:#93a0af;--accent:#4f8cff;--green:#3ecf8e;--red:#ff6b6b;--amber:#ffb454}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif}
+.top{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:50}
+.top h1{font-size:16px;margin:0 12px 0 0;font-weight:600}
+.tabs{display:flex;gap:4px;padding:8px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.tab{padding:7px 14px;border-radius:8px;cursor:pointer;color:var(--muted);border:1px solid transparent;user-select:none}
+.tab.active{background:var(--card);color:var(--text);border-color:var(--border)}
+.tab.done::after{content:" ✓";color:var(--green)}
+.page{display:none;padding:16px;max-width:1100px;margin:0 auto}
+.page.active{display:block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
+input,select,textarea,button{font:inherit;color:var(--text);background:var(--card2);border:1px solid var(--border);border-radius:7px;padding:7px 9px}
+input:focus,select:focus,textarea:focus{outline:1px solid var(--accent)}
+textarea{width:100%;resize:vertical}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.small{padding:3px 8px;font-size:12px}
+button:disabled{opacity:.5;cursor:wait}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.row>div{flex:1;min-width:140px}
+.muted{color:var(--muted);font-size:12px}
+.cost{color:var(--green);font-size:12px}
+.err{color:var(--red);font-size:13px;white-space:pre-wrap}
+.ctrl{display:flex;align-items:center;gap:8px}
+.ctrl input[type=range]{flex:1}
+.ctrl .val{min-width:42px;text-align:right;font-size:12px}
+.scene{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px}
+.scene .head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.badge{background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:12px;color:var(--muted)}
+.badge.peak{color:var(--amber);border-color:var(--amber)}
+.badge.build{color:var(--accent)}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.thumb{position:relative;width:120px;height:72px;border-radius:6px;overflow:hidden;border:2px solid var(--border);cursor:pointer;background:#000}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb.sel{border-color:var(--green)}
+.thumb .v{position:absolute;top:2px;left:4px;font-size:10px;background:#000a;border-radius:4px;padding:0 4px}
+.thumb .delx{position:absolute;top:2px;right:2px;width:18px;height:18px;line-height:18px;text-align:center;
+  font-size:11px;background:#c0392bdd;color:#fff;border-radius:50%;cursor:pointer;display:none;z-index:2}
+.thumb:hover .delx{display:block}
+.lightbox{position:fixed;inset:0;background:#000c;display:none;align-items:center;justify-content:center;z-index:100;cursor:zoom-out}
+.lightbox img{max-width:92vw;max-height:92vh;border-radius:8px}
+.lightbox.open{display:flex}
+table.pricing{width:100%;border-collapse:collapse;font-size:12px}
+table.pricing td,table.pricing th{border-bottom:1px solid var(--border);padding:5px 6px;text-align:left}
+table.pricing input{width:80px;padding:3px 6px;font-size:12px}
+.progress{height:10px;background:var(--card2);border-radius:6px;overflow:hidden;margin:8px 0}
+.progress>div{height:100%;background:var(--accent);width:0;transition:width .4s}
+.segrow{display:flex;gap:8px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)}
+audio{height:32px}
+.clipbox{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin:4px 0 2px}
+.clipbox .wave{display:block;width:100%;height:48px;margin-top:6px}
+.clipBtn{white-space:nowrap}
+.pill{font-size:11px;border-radius:10px;padding:1px 8px;background:var(--card2);border:1px solid var(--border);white-space:nowrap}
+.pill.done{color:var(--green);border-color:var(--green)}
+.pill.stale{color:var(--amber);border-color:var(--amber)}
+.pill.pending{color:var(--muted)}
+.toast{position:fixed;bottom:18px;right:18px;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:none;z-index:200;max-width:420px}
+hr{border:0;border-top:1px solid var(--border);margin:12px 0}
+.flexwrap{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.persona{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>🎬 AI Video Maker</h1>
+  <select id="projSel" style="min-width:150px"></select>
+  <button onclick="newProject()">New</button>
+  <button onclick="saveProject(true)">Save</button>
+  <button onclick="saveAsProject()">Save as</button>
+  <button onclick="deleteProject()">Delete</button>
+  <span style="flex:1"></span>
+  <select id="profSel" style="min-width:150px"></select>
+  <button onclick="applyProfile()">Apply profile</button>
+  <button onclick="saveProfile()">Save as profile</button>
+  <span class="cost" id="totalCost"></span>
+</div>
+<div class="tabs">
+  <div class="tab active" data-page="script" onclick="showTab('script')">1 · Script</div>
+  <div class="tab" data-page="voice" onclick="showTab('voice')">2 · Voice</div>
+  <div class="tab" data-page="images" onclick="showTab('images')">3 · Images</div>
+  <div class="tab" data-page="compile" onclick="showTab('compile')">4 · Compile</div>
+  <div class="tab" data-page="settings" onclick="showTab('settings')">⚙ Settings</div>
+</div>
+
+<!-- ============ SCRIPT ============ -->
+<div class="page active" id="page-script">
+  <div class="card">
+    <div class="row">
+      <div><label>Provider</label><select id="sProv" onchange="fillTextModels('sProv','sModel','script');renderScriptControls()"></select></div>
+      <div style="flex:2"><label>Model · cost CAD per 1M tokens (in / out)</label><select id="sModel" onchange="onScriptModel()"></select></div>
+    </div>
+    <label>Topic</label>
+    <input id="sTopic" style="width:100%" placeholder="e.g. Do animals enjoy music?">
+    <label>Style pre-prompt — tone, audience, length, pacing, number of speakers... it all goes here</label>
+    <textarea id="sPre" rows="3"></textarea>
+    <div class="muted">The script comes out with inline tags: [IMG 1: scene], [IMG 1 EDIT: change], [SFX: pop] — placed exactly where the visual changes. Edit them freely; they ARE the image plan. Speakers, length ("about 1400 words"), pacing — all go in the pre-prompt. Multi-speaker scripts also get a [CAST: 1 = Maya (female), 2 = Jin (male)] tag on line one — that's how the Voice tab knows who's who.</div>
+    <details style="margin-top:8px">
+      <summary class="muted" style="cursor:pointer">Tag format prompt — the exact format instructions sent with every script (nothing hidden; edit freely)</summary>
+      <textarea id="sFormat" rows="12" style="width:100%;margin-top:6px;font-size:12px" oninput="SETTINGS.script_format=this.value"></textarea>
+      <div class="flexwrap" style="margin-top:4px">
+        <button class="small" onclick="resetFormat()">Reset to default</button>
+        <span class="muted">{sfx} gets replaced with the sound files actually in your sfx/ folder.</span>
+      </div>
+    </details>
+    <div id="sControls"></div>
+    <div class="flexwrap" style="margin-top:12px">
+      <button class="primary" id="sGo" onclick="genScript()">Generate script</button>
+      <span class="muted" id="sInfo"></span>
+    </div>
+    <div class="err" id="sErr"></div>
+  </div>
+  <div class="card">
+    <label>Script (editable — multi-speaker lines are marked [Speaker 1], [Speaker 2]...)</label>
+    <textarea id="sText" rows="14" oninput="S.script.text=this.value;updateStats()"></textarea>
+    <div class="muted" id="sStats"></div>
+  </div>
+  <div class="flexwrap" style="justify-content:flex-end;margin-bottom:14px">
+    <button class="primary" onclick="showTab('voice')">Next: 2 · Voice →</button>
+  </div>
+</div>
+
+<!-- ============ DIRECTOR ============ -->
+<div class="page" id="page-director">
+  <div class="card">
+    <strong>AI Director</strong>
+    <div class="muted">One pass plans the whole video. It splits the script two ways: <b>voice segments</b> (below — how the narration is read aloud, one audio file each) and the <b>image plan</b> (in the Images tab — which picture is on screen at which moment). They're separate so a picture can change mid-sentence without affecting the voice. It also writes the continuity bible, title, thumbnail prompt and chapters.</div>
+    <div class="row">
+      <div><label>Provider</label><select id="dProv" onchange="fillTextModels('dProv','dModel','director')"></select></div>
+      <div style="flex:2"><label>Model (cheap is fine)</label><select id="dModel" onchange="S.director.model=this.value"></select></div>
+      <div><label>Min sec/image</label><input id="dMin" type="number" value="3" min="1" max="30"></div>
+      <div><label>Max sec/image</label><input id="dMax" type="number" value="12" min="2" max="60"></div>
+      <div><button class="primary" id="dGo" onclick="runDirector()">Run director</button></div>
+    </div>
+    <div class="err" id="dErr"></div>
+  </div>
+  <div id="dResult" style="display:none">
+    <div class="card">
+      <label>Video title</label>
+      <input id="dTitle" style="width:100%" oninput="S.director.title=this.value">
+      <label>Visual continuity bible (injected into every image prompt — keeps people/places consistent)</label>
+      <textarea id="dBible" rows="3" oninput="S.director.bible=this.value"></textarea>
+      <label>Chapters</label>
+      <div id="dChapters" class="muted"></div>
+    </div>
+    <div class="card">
+      <strong>Voice segments</strong> <span class="muted">— audio is generated per segment in the Voice tab; edit text or acting direction here</span>
+      <div id="dSegs"></div>
+    </div>
+    <div class="muted" style="margin-bottom:14px">The image plan (one card per picture, with timing and prompt) is in the Images tab (4).</div>
+  </div>
+</div>
+
+<!-- ============ VOICE ============ -->
+<div class="page" id="page-voice">
+  <div class="card">
+    <div class="row">
+      <div style="flex:2"><label>Engine · cost CAD per 1M characters</label><select id="vEngine" onchange="onEngine()"></select></div>
+      <div id="vFilterWrap"><label>Language</label><select id="vFilter" onchange="S.voice.lang=this.value;renderSpeakerVoices()"></select></div>
+    </div>
+    <div id="vControls"></div>
+    <div class="flexwrap" style="margin-top:8px">
+      <label style="margin:0" title="The director writes a short acting note per segment (e.g. 'hushed, tense'). When on, engines that support it get it as an emotion tag like [hushed]. When off, segments are read as plain text — nothing hidden.">
+        <input type="checkbox" id="vUseDir" checked onchange="S.voice.use_direction=this.checked;markStaleAll()" style="width:auto">
+        apply acting directions (emotion tags) — visible &amp; editable per segment below</label>
+    </div>
+    <div id="vSpeakers"></div>
+    <div class="flexwrap" style="margin-top:12px">
+      <button class="primary" id="vGo" onclick="genAllSegs()">Generate all pending segments</button>
+      <button id="vStop" style="display:none" onclick="stopBatch()" title="Finishes the segment in progress, then stops">■ Stop</button>
+      <button onclick="startRec()" id="recBtn">● Record my voice</button>
+      <button onclick="document.getElementById('vUpload').click()">Upload audio file</button>
+      <input type="file" id="vUpload" accept="audio/*" style="display:none" onchange="uploadAudio(this.files[0])">
+      <button id="cloneBtn" style="display:none" onclick="addCloneFor(null)" title="5-20 seconds of clean speech. The file lands in the voices/ folder next to the app. Use the + Clone button beside a speaker to assign it directly.">+ Add voice to clone</button>
+      <input type="file" id="cloneUpload" accept="audio/*" style="display:none" onchange="uploadClone(this.files[0],_cloneTarget)">
+      <span class="muted" id="vInfo"></span>
+    </div>
+    <div class="progress" id="vProg" style="display:none"><div></div></div>
+    <div class="err" id="vErr"></div>
+  </div>
+  <div class="card" id="vSegCard" style="display:none">
+    <strong>Segments</strong> <span class="muted">— re-roll any one for pennies; edits mark them stale</span>
+    <div id="vSegs"></div>
+  </div>
+  <div class="card" id="vResult" style="display:none">
+    <div class="flexwrap"><strong>Full track</strong> <span class="badge" id="vDur"></span></div>
+    <audio id="vAudio" controls style="width:100%"></audio>
+  </div>
+  <div class="flexwrap" style="justify-content:flex-end;margin-bottom:14px">
+    <button class="primary" onclick="showTab('images')">Next: 3 · Images →</button>
+  </div>
+</div>
+
+<!-- ============ IMAGES ============ -->
+<div class="page" id="page-images">
+  <div class="card">
+    <div class="row">
+      <div style="flex:2"><label>Model · cost CAD per image</label><select id="iModel" onchange="onImageModel()"></select></div>
+      <div><label>Aspect ratio</label><select id="iRatio" onchange="S.imagecfg.ratio=this.value"></select></div>
+    </div>
+    <div id="iControls"></div>
+    <div class="flexwrap" id="iGroundWrap" style="margin-top:8px;display:none">
+      <label style="margin:0"><input type="checkbox" id="iGround" onchange="S.imagecfg.grounding=this.checked" style="width:auto">
+        Ground with Google Search — the model checks real facts/events before drawing (great for news videos)</label>
+    </div>
+    <label>Image style pre-prompt (prefixed to every prompt, on top of the continuity bible)</label>
+    <textarea id="iPre" rows="2" oninput="S.imagecfg.preprompt=this.value"></textarea>
+    <div class="flexwrap" style="margin-top:12px">
+      <button class="primary" id="iGoAll" onclick="genAllImages()">Generate all missing images</button>
+      <button id="iStop" style="display:none" onclick="stopBatch()" title="Finishes the image in progress, then stops">■ Stop</button>
+      <button onclick="runDirector().then(()=>renderBeats())">↻ Re-plan images & prompts</button>
+      <button onclick="retimeBeats(true)">Re-time</button>
+      <span class="muted" id="iInfo"></span>
+    </div>
+    <div class="err" id="iErr"></div>
+  </div>
+  <div class="card">
+    <strong>Style references</strong>
+    <div class="muted" id="refNote">Upload a few images in the look you want — they're sent with every new scene so the art style stays consistent.</div>
+    <div class="flexwrap" style="margin-top:8px">
+      <button onclick="document.getElementById('refUpload').click()">Upload style images</button>
+      <input type="file" id="refUpload" accept="image/png,image/jpeg,image/webp" multiple style="display:none" onchange="uploadRefs(this.files)">
+      <label style="margin:0"><input type="checkbox" id="refUse" checked onchange="S.imagecfg.use_refs=this.checked" style="width:auto"> use references (style + characters)</label>
+    </div>
+    <div class="thumbs" id="refThumbs"></div>
+  </div>
+  <div class="card">
+    <strong>Characters</strong>
+    <div class="muted" id="charNote">Named character images — when an image prompt mentions the name, the model draws exactly this character (same face, hair, outfit). Tip: generate one good portrait or character sheet first, then add it here.</div>
+    <div class="flexwrap" style="margin-top:8px">
+      <button onclick="addCharacter()">+ Add character</button>
+      <input type="file" id="charUpload" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="uploadChar(this.files[0])">
+    </div>
+    <div class="thumbs" id="charThumbs"></div>
+  </div>
+  <div class="card" id="thumbCard" style="display:none">
+    <strong>Thumbnail</strong>
+    <label>Thumbnail prompt</label>
+    <textarea id="tPrompt" rows="2" oninput="S.director.thumbnail_prompt=this.value"></textarea>
+    <div class="flexwrap"><button class="small" onclick="genThumb()">Generate thumbnail</button></div>
+    <div class="thumbs" id="thumbThumbs"></div>
+  </div>
+  <div id="beatList"></div>
+  <div class="flexwrap" style="justify-content:flex-end;margin-bottom:14px">
+    <button class="primary" onclick="showTab('compile')">Next: 4 · Compile →</button>
+  </div>
+</div>
+
+<!-- ============ COMPILE ============ -->
+<div class="page" id="page-compile">
+  <div class="card">
+    <div class="row">
+      <div><label>Resolution</label><select id="cRes">
+        <option>1920x1080</option><option>1280x720</option><option>3840x2160</option>
+        <option>1080x1920</option><option>720x1280</option><option>1080x1080</option></select></div>
+      <div><label>FPS</label><select id="cFps"><option>30</option><option>24</option><option>60</option></select></div>
+      <div><label>Motion</label><select id="cMotion">
+        <option value="kenburns_fade">Ken Burns + crossfade</option>
+        <option value="kenburns">Ken Burns, hard cuts</option>
+        <option value="fade">Static + crossfade</option>
+        <option value="none">Static, hard cuts (nothing)</option></select></div>
+      <div><label>Image scaling</label><select id="cScale">
+        <option value="fill">Fill screen (crop)</option>
+        <option value="fit_blur">Fit + blurred background</option>
+        <option value="fit_black">Fit + black bars</option>
+        <option value="stretch">Stretch</option>
+        <option value="center">Center, no scaling up</option></select></div>
+    </div>
+    <div class="row">
+      <div><label>Subtitles</label><select id="cSubs">
+        <option value="none">None</option><option value="embedded">Burned into video</option>
+        <option value="srt">SRT file only</option><option value="both">Burned + SRT</option></select></div>
+      <div><label>Subtitle size</label><select id="cSubSize"><option>small</option><option selected>medium</option><option>large</option></select></div>
+      <div><label>Spots without an image</label><select id="cMissing">
+        <option value="neighbor">Hold the previous image</option>
+        <option value="placeholder">Dark placeholder</option></select></div>
+    </div>
+    <div class="muted" style="margin-top:4px">Ken Burns needs "Fill screen" — other scalings render static. You can compile any time; missing images use the policy above.</div>
+    <hr>
+    <strong>Background music</strong>
+    <div class="flexwrap" style="margin-top:8px">
+      <button onclick="document.getElementById('mUpload').click()">Upload music (mp3/wav)</button>
+      <input type="file" id="mUpload" accept="audio/*" style="display:none" onchange="uploadMusic(this.files[0])">
+      <span class="badge" id="mFile">none</span>
+      <button class="small" onclick="S.music.file='';$('mFile').textContent='none'">✕ remove</button>
+      <label style="margin:0">Volume</label>
+      <input type="range" min="0.05" max="0.6" step="0.05" value="0.25" id="mVol" style="width:120px"
+        oninput="S.music.volume=parseFloat(this.value);$('mVolV').textContent=this.value">
+      <span class="muted" id="mVolV">0.25</span>
+      <label style="margin:0"><input type="checkbox" id="mDuck" checked onchange="S.music.duck=this.checked" style="width:auto"> auto-duck under voice</label>
+    </div>
+    <hr>
+    <strong>Sound effects</strong>
+    <div class="flexwrap" style="margin-top:8px">
+      <label style="margin:0"><input type="checkbox" id="xOn" checked onchange="S.sfx.enabled=this.checked" style="width:auto"> mix in the director's sound effects</label>
+      <label style="margin:0">Volume</label>
+      <input type="range" min="0.1" max="1.0" step="0.05" value="0.5" id="xVol" style="width:120px"
+        oninput="S.sfx.volume=parseFloat(this.value);$('xVolV').textContent=this.value">
+      <span class="muted" id="xVolV">0.5</span>
+      <span class="muted" id="xCount"></span>
+    </div>
+    <hr>
+    <div class="flexwrap">
+      <button class="primary" id="cGo" onclick="renderVideo()">Render video</button>
+      <span class="muted" id="cInfo"></span>
+    </div>
+    <div class="progress" id="cProg" style="display:none"><div></div></div>
+    <div class="err" id="cErr"></div>
+  </div>
+  <div class="card" id="cResult" style="display:none">
+    <video id="cVideo" controls style="width:100%;border-radius:8px"></video>
+  </div>
+  <div class="card">
+    <strong>Download</strong>
+    <div class="flexwrap" style="margin-top:8px">
+      <button onclick="dl('all')">Everything (zip)</button>
+      <button onclick="dl('video')">Video + SRT</button>
+      <button onclick="dl('audio')">Audio</button>
+      <button onclick="dl('images')">Images</button>
+      <button onclick="dl('script')">Script + title + chapters</button>
+    </div>
+    <div class="muted" style="margin-top:6px">Files also live in the <code>projects/&lt;name&gt;</code> folder next to the app.</div>
+  </div>
+  <div class="card"><strong>Cost ledger</strong><div id="ledger" class="muted" style="margin-top:6px"></div></div>
+</div>
+
+<!-- ============ SETTINGS ============ -->
+<div class="page" id="page-settings">
+  <div class="card">
+    <strong>API keys</strong>
+    <label>OpenAI</label><input id="kOpenai" type="password" style="width:100%">
+    <label>Claude (Anthropic)</label><input id="kClaude" type="password" style="width:100%">
+    <label>Gemini (Google)</label><input id="kGemini" type="password" style="width:100%">
+    <label>ElevenLabs (elevenlabs.io → profile → API keys)</label><input id="kEleven" type="password" style="width:100%">
+    <div class="row">
+      <div style="flex:2"><label>Azure Speech key (portal.azure.com → Speech service → Keys)</label><input id="kAzure" type="password" style="width:100%"></div>
+      <div><label>Azure region (e.g. eastus, canadacentral)</label><input id="kAzureRegion" style="width:100%"></div>
+    </div>
+    <label>Replicate (replicate.com → API tokens — used by Chatterbox API + FLUX images)</label><input id="kReplicate" type="password" style="width:100%">
+    <div class="muted" style="margin-top:6px">Chatterbox Turbo also runs locally for free — install once with <code>.venv\Scripts\pip install chatterbox-tts</code> (PyTorch, ~2&nbsp;GB; NVIDIA GPU recommended).</div>
+    <div class="row">
+      <div><label>USD → CAD rate</label><input id="kFx" type="number" step="0.01"></div>
+      <div><label>Word-accurate alignment via OpenAI Whisper (~$0.008 CAD/min, improves timing for non-Edge voices)</label>
+        <select id="kWhisper"><option value="false">Off (estimate timings)</option><option value="true">On</option></select></div>
+    </div>
+    <div class="flexwrap" style="margin-top:12px">
+      <button class="primary" onclick="saveSettings()">Save settings</button>
+      <span class="muted" id="kInfo"></span>
+    </div>
+  </div>
+  <div class="card">
+    <strong>Pricing table (USD, editable — CAD shown in the app is computed from these)</strong>
+    <div class="muted">Prices change; fix them here any time.</div>
+    <div id="pricing"></div>
+  </div>
+  <div class="card">
+    <strong>Live model list</strong>
+    <div class="muted">Fetch what your key can actually access (informational).</div>
+    <div class="flexwrap" style="margin-top:8px">
+      <button class="small" onclick="liveModels('openai')">OpenAI</button>
+      <button class="small" onclick="liveModels('claude')">Claude</button>
+      <button class="small" onclick="liveModels('gemini')">Gemini</button>
+    </div>
+    <pre id="liveOut" class="muted" style="white-space:pre-wrap;max-height:300px;overflow:auto"></pre>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('open')"><img id="lightImg"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+let BOOT=null,MODELS=null,PROFILES={},DEFAULT_PROFILES=[],SETTINGS=null,S=null,VOICE_CACHE={},SFX=[];
+const $=id=>document.getElementById(id);
+const esc=s=>(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const txt=v=>typeof v==="string"?v:(v==null?"":JSON.stringify(v));
+function toast(msg,ms=3500){const t=$("toast");t.textContent=msg;t.style.display="block";clearTimeout(t._h);t._h=setTimeout(()=>t.style.display="none",ms);}
+async function api(path,body,method){
+  const opt={method:method||(body?"POST":"GET"),headers:{}};
+  if(body){opt.headers["Content-Type"]="application/json";opt.body=JSON.stringify(body);}
+  const r=await fetch(path,opt);
+  const d=await r.json().catch(()=>({detail:"Bad response"}));
+  if(!r.ok)throw new Error(d.detail||JSON.stringify(d));
+  return d;
+}
+function showTab(p){
+  document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.page===p));
+  $("page-"+p).classList.add("active");
+  if(p==="voice"){renderSpeakerVoices();renderVoiceSegs();}
+  if(p==="director")renderDirector();
+  if(p==="images")renderBeats();
+  if(p==="compile")renderLedger();
+}
+function defaultState(){
+  const p=JSON.parse(JSON.stringify(PROFILES["Documentary"]||Object.values(PROFILES)[0]));
+  return {name:"",costs:[],
+    script:Object.assign({topic:"",length_hint:"",text:"",personas:{general:"",speakers:{}}},p.script),
+    director:Object.assign({provider:"gemini",model:"gemini-2.5-flash",min_sec:3,max_sec:12,pacing:"normal",
+      bible:"",title:"",thumbnail_prompt:"",chapters:[],done:false},p.director||{}),
+    segments:[],beats:[],thumb:{versions:[],selected:-1},
+    voice:Object.assign({audio_url:"",duration:0,words:[],uploaded:false,lang:"en",use_direction:true},p.voice),
+    imagecfg:Object.assign({controls:{}},p.images),
+    music:Object.assign({file:"",volume:0.25,duck:true},p.music||{}),
+    sfx:{enabled:true,volume:0.5},
+    compile:Object.assign({fps:30,sub_size:"medium",scale_mode:"fill",missing:"neighbor"},p.compile)};
+}
+// ---------- model helpers ----------
+function textModels(prov){return MODELS.text.filter(m=>m.provider===prov).sort((a,b)=>(a.price_in+a.price_out)-(b.price_in+b.price_out));}
+function providersOf(kind){return [...new Set(MODELS[kind].map(m=>m.provider))];}
+function fillTextModels(provSel,modelSel,which){
+  const prov=$(provSel).value,ms=textModels(prov);
+  $(modelSel).innerHTML=ms.map(m=>`<option value="${m.id}">${esc(m.label)} — $${m.price_in_cad.toFixed(2)} / $${m.price_out_cad.toFixed(2)} CAD</option>`).join("");
+  if(which==="script"){S.script.provider=prov;S.script.model=ms[0]?.id;}
+  if(which==="director"){S.director.provider=prov;S.director.model=ms[0]?.id;}
+}
+function fillTextModelsKeep(provSel,modelSel,prov,model){
+  $(provSel).value=prov;
+  const ms=textModels(prov);
+  $(modelSel).innerHTML=ms.map(m=>`<option value="${m.id}">${esc(m.label)} — $${m.price_in_cad.toFixed(2)} / $${m.price_out_cad.toFixed(2)} CAD</option>`).join("");
+  if(ms.find(m=>m.id===model))$(modelSel).value=model;
+}
+function controlHtml(c,vals,prefix){
+  const v=vals[c.key]!==undefined?vals[c.key]:c.default;
+  if(c.type==="select")
+    return `<div><label>${esc(c.label)}</label><select data-ck="${c.key}" data-cp="${prefix}" onchange="ctrlChange(this)">${c.options.map(o=>`<option ${o==v?"selected":""}>${o}</option>`).join("")}</select></div>`;
+  if(c.type==="text")
+    return `<div style="flex:2"><label>${esc(c.label)}</label><input data-ck="${c.key}" data-cp="${prefix}" value="${esc(String(v))}" oninput="ctrlChange(this)" style="width:100%"></div>`;
+  return `<div><label>${esc(c.label)}</label><div class="ctrl"><input type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${v}" data-ck="${c.key}" data-cp="${prefix}" oninput="ctrlChange(this)"><span class="val">${v}</span></div></div>`;
+}
+function ctrlChange(el){
+  let v=el.value;
+  if(el.type==="range"){v=parseFloat(v);el.parentElement.querySelector(".val").textContent=v;}
+  const target=el.dataset.cp==="script"?S.script.controls:el.dataset.cp==="voice"?S.voice.controls:S.imagecfg.controls;
+  target[el.dataset.ck]=v;
+  if(el.dataset.cp==="voice")markStaleAll();
+}
+function renderControls(containerId,schema,vals,prefix){
+  $(containerId).innerHTML=schema.length?`<div class="row" style="margin-top:6px">${schema.map(c=>controlHtml(c,vals,prefix)).join("")}</div>`:"";
+  schema.forEach(c=>{if(vals[c.key]===undefined)vals[c.key]=c.default;});
+}
+// ---------- script ----------
+function onScriptModel(){S.script.model=$("sModel").value;renderScriptControls();}
+function renderScriptControls(){
+  const m=MODELS.text.find(x=>x.id===($("sModel").value||S.script.model));
+  if(m)renderControls("sControls",m.controls,S.script.controls,"script");
+}
+function syncScriptUI(){
+  $("sProv").innerHTML=providersOf("text").map(p=>`<option ${p===S.script.provider?"selected":""}>${p}</option>`).join("");
+  fillTextModelsKeep("sProv","sModel",S.script.provider,S.script.model);
+  $("sTopic").value=S.script.topic||"";$("sPre").value=S.script.preprompt||"";
+  $("sFormat").value=SETTINGS.script_format||BOOT.script_format_default||"";
+  $("sText").value=S.script.text||"";
+  renderScriptControls();updateStats();
+}
+function resetFormat(){
+  SETTINGS.script_format="";
+  $("sFormat").value=BOOT.script_format_default||"";
+  api("/api/settings",{settings:SETTINGS},"PUT").catch(()=>{});
+  toast("Format prompt reset to default");
+}
+function updateStats(){
+  const t=S.script.text||"",plain=t.replace(/\[[^\]]*\]/g," ");
+  const w=plain.split(/\s+/).filter(Boolean).length;
+  const imgs=(t.match(/\[\s*(?:IMG|IMAGE|PIC|PICTURE)[^\]]*\]/gi)||[]).length;
+  const sfx=(t.match(/\[\s*SFX[^\]]*\]/gi)||[]).length;
+  $("sStats").textContent=t?`${w} spoken words · ~${Math.round(w/2.6)}s (~${(w/2.6/60).toFixed(1)} min)`+(imgs?` · ${imgs} image tags · ${sfx} sfx`:""):"";
+}
+async function genScript(){
+  S.script.topic=$("sTopic").value;S.script.preprompt=$("sPre").value;
+  if(!S.script.topic.trim())return toast("Enter a topic first");
+  $("sErr").textContent="";$("sGo").disabled=true;$("sInfo").textContent="Generating…";
+  try{
+    api("/api/settings",{settings:SETTINGS},"PUT").catch(()=>{});  // persist any format-prompt edits
+    const d=await api("/api/script",{provider:S.script.provider,model:S.script.model,topic:S.script.topic,
+      preprompt:S.script.preprompt,controls:S.script.controls,
+      format_prompt:$("sFormat").value});
+    S.script.text=d.text;$("sText").value=d.text;updateStats();
+    S.director.done=false;
+    addCost(`Script (${S.script.model})`,d.cost_cad);
+    $("sInfo").innerHTML=`Done · ${d.tokens_in}+${d.tokens_out} tokens · <span class="cost">$${d.cost_cad.toFixed(4)} CAD</span> — next: Voice tab`;
+    markDone("script");saveProject();
+  }catch(e){$("sErr").textContent=e.message;}
+  $("sGo").disabled=false;
+}
+// ---------- director ----------
+async function runDirector(){
+  if(!S.script.text.trim())return toast("Generate or paste a script first (tab 1)");
+  if(S.segments.some(s=>s.status==="done")&&!confirm("Re-running the director resets segments and beats (generated audio/images stay on disk but get unlinked). Continue?"))return;
+  await ensureProject();
+  S.director.provider=$("dProv").value;S.director.model=$("dModel").value;
+  S.director.min_sec=parseFloat($("dMin").value);S.director.max_sec=parseFloat($("dMax").value);
+  S.director.pacing=S.director.pacing||"normal";
+  $("dErr").textContent="";$("dGo").disabled=true;$("dGo").textContent="Directing…";
+  try{
+    const d=await api("/api/director",{project:S.name,provider:S.director.provider,model:S.director.model,
+      script:S.script.text,topic:S.script.topic||"",min_sec:S.director.min_sec,max_sec:S.director.max_sec,
+      pacing:S.director.pacing});
+    S.segments=d.segments.map(s=>({speaker:s.speaker,text:s.text,direction:s.direction,
+      file:"",url:"",duration:0,words:[],hash:"",status:"pending"}));
+    S.beats=d.beats.map(b=>({text:b.text,image_prompt:b.image_prompt,energy:b.energy,
+      shot:b.shot||"new",edit_of:(b.edit_of??-1),sfx:b.sfx||"",
+      start:0,end:0,duration:0,versions:[],selected:-1,motion:""}));
+    Object.assign(S.director,{bible:d.bible,title:d.title,thumbnail_prompt:d.thumbnail_prompt,
+      chapters:d.chapters,done:true});
+    S.voice.audio_url="";S.voice.words=[];S.voice.duration=0;
+    addCost("Director",d.cost_cad);
+    renderDirector();markDone("director");saveProject();
+    toast(d.parsed
+      ?`Script tags parsed (free): ${S.beats.length} images, ${S.segments.length} voice segments`
+      :`Director done: ${S.segments.length} voice segments, ${S.beats.length} images planned`);
+  }catch(e){$("dErr").textContent=e.message;toast("Planning failed: "+e.message,7000);}
+  $("dGo").disabled=false;$("dGo").textContent="Run director";
+}
+function renderDirector(){
+  $("dProv").innerHTML=providersOf("text").map(p=>`<option ${p===S.director.provider?"selected":""}>${p}</option>`).join("");
+  fillTextModelsKeep("dProv","dModel",S.director.provider,S.director.model);
+  $("dMin").value=S.director.min_sec;$("dMax").value=S.director.max_sec;
+  if(!S.director.done){$("dResult").style.display="none";return;}
+  $("dResult").style.display="block";
+  $("dTitle").value=S.director.title;$("dBible").value=S.director.bible;
+  $("dChapters").innerHTML=(S.director.chapters||[]).map(c=>`• ${esc(c.title)} <span class="muted">(beat ${c.beat+1})</span>`).join("<br>")||"—";
+  $("dSegs").innerHTML=S.segments.map((s,i)=>`
+    <div class="segrow">
+      <span class="pill" title="${esc(personaTitle(s.speaker))}">${esc(speakerTag(s.speaker))}</span>
+      <div style="flex:1">
+        <textarea rows="2" oninput="editSeg(${i},'text',this.value)">${esc(s.text)}</textarea>
+        <input style="width:100%;margin-top:4px" value="${esc(s.direction)}" placeholder="acting direction, e.g. hushed, tense"
+          oninput="editSeg(${i},'direction',this.value)">
+      </div>
+      <button class="small" onclick="mergeSeg(${i})" ${i>=S.segments.length-1?"disabled":""}>Merge ↓</button>
+    </div>`).join("");
+}
+function editSeg(i,k,v){
+  S.segments[i][k]=v;
+  if(S.segments[i].status==="done")S.segments[i].status="stale";
+}
+function mergeSeg(i){
+  const a=S.segments[i],b=S.segments[i+1];
+  a.text+=" "+b.text;a.status=a.status==="pending"?"pending":"stale";
+  S.segments.splice(i+1,1);renderDirector();saveProject();
+}
+// ---------- voice ----------
+function ttsModel(){return MODELS.tts.find(m=>m.id===S.voice.engine);}
+// engines that clone from a reference clip in the voices/ folder
+function cloneCapable(eng){return ["chatterbox","chatterbox-v1","chatterbox-mtl","chatterbox-replicate","chatterbox-v1-replicate"].includes(eng);}
+
+// ----- reference-clip preview: play + draw the waveform of the loaded voice sample -----
+let _audioCtx=null,_clipPlaying=null;
+const _peaksCache={};   // url -> Float32Array of peaks
+function audioCtx(){return _audioCtx||(_audioCtx=new (window.AudioContext||window.webkitAudioContext)());}
+function cleanUrl(u){return (u||"").split("?")[0];}
+async function clipPeaks(url){
+  const key=cleanUrl(url);
+  if(_peaksCache[key])return _peaksCache[key];
+  const buf=await (await fetch(url)).arrayBuffer();
+  const audio=await audioCtx().decodeAudioData(buf);
+  const ch=audio.getChannelData(0),N=240,block=Math.floor(ch.length/N)||1,peaks=new Float32Array(N);
+  for(let i=0;i<N;i++){let m=0;for(let j=0;j<block;j++){const v=Math.abs(ch[i*block+j]||0);if(v>m)m=v;}peaks[i]=m;}
+  let max=0;for(const p of peaks)if(p>max)max=p;
+  if(max>0)for(let i=0;i<N;i++)peaks[i]/=max;
+  _peaksCache[key]=peaks;return peaks;
+}
+async function drawWaveform(canvas,url){
+  if(!canvas)return;
+  const dpr=window.devicePixelRatio||1,W=canvas.clientWidth||520,H=canvas.clientHeight||48;
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  const g=canvas.getContext("2d");g.scale(dpr,dpr);g.clearRect(0,0,W,H);
+  let peaks;try{peaks=await clipPeaks(url);}catch(e){
+    g.fillStyle="#93a0af";g.font="12px system-ui";g.fillText("waveform unavailable",6,H/2+4);return;}
+  const accent=getComputedStyle(document.documentElement).getPropertyValue("--accent").trim()||"#4f8cff";
+  const N=peaks.length,bw=W/N,mid=H/2;g.fillStyle=accent;
+  for(let i=0;i<N;i++){const h=Math.max(1,peaks[i]*(H-4));g.fillRect(i*bw,mid-h/2,Math.max(1,bw-1),h);}
+}
+function stopClip(){
+  if(!_clipPlaying)return false;
+  const same=_clipPlaying._vmUrl;
+  _clipPlaying.pause();_clipPlaying=null;
+  document.querySelectorAll(".clipBtn").forEach(b=>b.textContent="▶ Play sample");
+  return same;
+}
+function playClip(url,btn){
+  try{
+    if(stopClip()===cleanUrl(url))return;  // clicking the playing clip again = stop
+    const a=new Audio(url);a._vmUrl=cleanUrl(url);_clipPlaying=a;
+    if(btn)btn.textContent="■ Stop";
+    a.onended=()=>{if(btn)btn.textContent="▶ Play sample";_clipPlaying=null;};
+    a.play();
+  }catch(e){toast("Could not play clip: "+e.message);}
+}
+function cloneFor(spk){
+  const list=VOICE_CACHE[S.voice.engine]||[];
+  return list.find(v=>v.id===S.voice.voices[spk]);
+}
+function renderClonePanel(spk){
+  const wrap=$("clonePanel-"+spk);if(!wrap)return;
+  if(!cloneCapable(S.voice.engine)){wrap.innerHTML="";return;}
+  const v=cloneFor(spk);
+  if(!v||v.id==="default"||!v.url){
+    wrap.innerHTML=`<div class="muted" style="margin:4px 0 2px">Using the built-in default voice — add a clone (5-20s of clean speech) to use your own voice.</div>`;
+    return;}
+  wrap.innerHTML=`<div class="clipbox">
+      <div class="flexwrap" style="justify-content:space-between">
+        <span class="muted">🎙 Reference clip: <b style="color:var(--text)">${esc(v.label.replace(/^Clone of: /,""))}</b></span>
+        <button class="small clipBtn" onclick="playClip('${v.url}',this)">▶ Play sample</button>
+      </div>
+      <canvas class="wave" id="wave-${spk}"></canvas>
+    </div>`;
+  requestAnimationFrame(()=>drawWaveform($("wave-"+spk),v.url));
+}
+function syncVoiceUI(){
+  $("vEngine").innerHTML=MODELS.tts.map(m=>{
+    const price=m.price_chars?`$${m.price_chars_cad.toFixed(2)} CAD/M chars`:"free";
+    return `<option value="${m.id}" ${m.id===S.voice.engine?"selected":""}>${esc(m.label)} — ${price}</option>`;}).join("");
+  renderControls("vControls",(ttsModel()||{controls:[]}).controls,S.voice.controls,"voice");
+  $("cloneBtn").style.display=cloneCapable(S.voice.engine)?"":"none";
+  $("vUseDir").checked=S.voice.use_direction!==false;
+  renderSpeakerVoices();renderVoiceSegs();
+}
+async function onEngine(){
+  S.voice.engine=$("vEngine").value;S.voice.controls={};
+  renderControls("vControls",(ttsModel()||{controls:[]}).controls,S.voice.controls,"voice");
+  $("cloneBtn").style.display=cloneCapable(S.voice.engine)?"":"none";
+  markStaleAll();await renderSpeakerVoices();renderVoiceSegs();
+}
+let _cloneTarget=null;  // which speaker the next uploaded clip belongs to (null = first)
+function addCloneFor(spk){_cloneTarget=spk;document.getElementById("cloneUpload").click();}
+async function uploadClone(file,spk){
+  if(!file)return;
+  $("vInfo").textContent="Uploading voice clip…";
+  const fd=new FormData();fd.append("file",file);
+  const r=await fetch("/api/voices/clone",{method:"POST",body:fd});
+  const d=await r.json();if(!r.ok){$("vErr").textContent=d.detail||"upload failed";return;}
+  // same clip list is shared by every clone-capable engine — refresh all their caches
+  ["chatterbox","chatterbox-v1","chatterbox-mtl","chatterbox-replicate","chatterbox-v1-replicate"].forEach(e=>VOICE_CACHE[e]=d.voices);
+  $("vInfo").textContent="";$("cloneUpload").value="";
+  // auto-select the just-added clip for the speaker it was uploaded for (or the first)
+  const tgt=spk||speakersUsed()[0];
+  if(d.added&&tgt){S.voice.voices[tgt]=d.added;markStaleAll();}
+  _cloneTarget=null;
+  await renderSpeakerVoices();
+  toast(`Voice clip added${tgt?` → ${speakerTag(tgt)}`:""} — hear it below ✔`);
+}
+function speakersUsed(){
+  if(S.segments.length)return [...new Set(S.segments.map(s=>s.speaker))].sort();
+  const found=[...(S.script.text||"").matchAll(/\[\s*(?:speaker|host|voice)?\s*(\d+)\s*\]/gi)].map(m=>m[1]);
+  return found.length?[...new Set(found)].sort():["1"];
+}
+// ----- cast: parsed from the [CAST: 1 = Maya (female), 2 = Jin (male)] tag in the script -----
+let _castCache={key:null,map:{}};
+function castMap(){
+  const t=S.script.text||"";
+  if(_castCache.key===t)return _castCache.map;
+  const map={};
+  const m=t.match(/\[\s*CAST\s*:([^\]]*)\]/i);
+  if(m)for(const part of m[1].split(/[,;]+/)){
+    const mm=part.match(/(\d+)\s*=\s*([^()=]+?)\s*(?:\(([^)]*)\))?\s*$/);
+    if(mm)map[mm[1]]={name:mm[2].trim(),gender:(mm[3]||"").trim()};
+  }
+  _castCache={key:t,map};
+  return map;
+}
+function personaOf(s){return castMap()[s]||{};}
+function speakerTag(s){
+  const p=personaOf(s),g=(p.gender||"").toLowerCase();
+  const icon=g.startsWith("f")?" ♀":g.startsWith("m")?" ♂":g?" ⚧":"";
+  return `Spk ${s}${p.name?` · ${p.name}`:""}${icon}`;
+}
+function personaTitle(s){
+  const p=personaOf(s);
+  return [p.name,p.gender].filter(Boolean).join(" · ")||`Speaker ${s} — a [CAST: ${s} = Name (gender)] tag in the script labels this speaker`;
+}
+async function getVoices(engine){
+  if(VOICE_CACHE[engine])return VOICE_CACHE[engine];
+  const prov=engine==="edge"?"edge":(ttsModel()||{}).provider;
+  const d=await api(`/api/voices?engine=${prov}`);
+  VOICE_CACHE[engine]=d.voices;return d.voices;
+}
+async function renderSpeakerVoices(){
+  const eng=S.voice.engine;
+  if(eng==="upload"){$("vSpeakers").innerHTML=`<div class="muted" style="margin-top:8px">Record or upload below — segments don't apply.</div>`;return;}
+  let voices=[];
+  try{voices=await getVoices(eng);}catch(e){$("vErr").textContent=e.message;return;}
+  // language dropdown built from what this engine actually offers (hidden if no locales, e.g. Chatterbox)
+  const langs=[...new Set(voices.map(v=>(v.locale||"").split("-")[0].toLowerCase()).filter(Boolean))].sort();
+  $("vFilterWrap").style.display=langs.length?"":"none";
+  const cur=langs.includes(S.voice.lang)?S.voice.lang:(langs.includes("en")?"en":"all");
+  $("vFilter").innerHTML=`<option value="all" ${cur==="all"?"selected":""}>all languages</option>`+
+    langs.map(l=>`<option ${l===cur?"selected":""}>${l}</option>`).join("");
+  S.voice.lang=cur;
+  const fv=cur==="all"?voices:voices.filter(v=>(v.locale||"").toLowerCase().startsWith(cur));
+  const list=fv.length?fv:voices;
+  const spks=speakersUsed();
+  $("vSpeakers").innerHTML=spks.map(s=>`<div style="margin-top:10px">
+      <div class="row" style="align-items:center">
+        <div style="max-width:170px"><span class="pill" title="${esc(personaTitle(s))}">${esc(speakerTag(s))}</span></div>
+        <div style="flex:3"><select data-spk="${s}" onchange="S.voice.voices[this.dataset.spk]=this.value;markStaleAll();renderClonePanel('${s}')" style="width:100%">
+          ${list.map(v=>`<option value="${v.id}">${esc(v.label)}</option>`).join("")}</select></div>
+        <div><button class="small" onclick="previewVoice('${s}')">▶ Preview</button></div>
+        ${cloneCapable(eng)?`<div><button class="small" onclick="addCloneFor('${s}')" title="Upload a 5-20s clip of clean speech — becomes THIS speaker's voice">+ Clone</button></div>`:""}
+      </div>
+      <div id="clonePanel-${s}"></div>
+    </div>`).join("");
+  spks.forEach(s=>{if(!S.voice.voices[s]||!list.find(v=>v.id===S.voice.voices[s]))S.voice.voices[s]=list[0]?.id||"";});
+  document.querySelectorAll("#vSpeakers select").forEach(sel=>{sel.value=S.voice.voices[sel.dataset.spk]||sel.value;});
+  spks.forEach(renderClonePanel);
+}
+async function previewVoice(spk){
+  if(stopClip())return;  // something was playing — this click just stops it
+  try{
+    $("vInfo").textContent="Generating preview…";
+    const d=await api("/api/tts/preview",{engine:S.voice.engine,voice:S.voice.voices[spk],controls:S.voice.controls});
+    const a=new Audio(d.url);a._vmUrl=cleanUrl(d.url);_clipPlaying=a;
+    a.onended=()=>{_clipPlaying=null;};
+    a.play();$("vInfo").textContent="";
+  }catch(e){$("vErr").textContent=e.message;$("vInfo").textContent="";}
+}
+function segHash(i){
+  const s=S.segments[i];
+  return JSON.stringify([s.text,S.voice.use_direction===false?"":s.direction,
+    S.voice.engine,S.voice.voices[s.speaker],S.voice.controls]);
+}
+function markStaleAll(){
+  S.segments.forEach((s,i)=>{if(s.status==="done"&&s.hash!==segHash(i))s.status="stale";});
+  renderVoiceSegs();
+}
+function renderVoiceSegs(){
+  // full-track player reflects THIS project only — hide leftovers from previously open projects
+  if(S.voice.audio_url){
+    $("vResult").style.display="block";
+    if($("vAudio").getAttribute("src")!==S.voice.audio_url)$("vAudio").src=S.voice.audio_url;
+    $("vDur").textContent=fmtTime(S.voice.duration);
+  }else{
+    $("vResult").style.display="none";$("vAudio").removeAttribute("src");
+  }
+  if(!S.segments.length){$("vSegCard").style.display="none";return;}
+  $("vSegCard").style.display="block";
+  const useDir=S.voice.use_direction!==false;
+  $("vSegs").innerHTML=S.segments.map((s,i)=>`
+    <div class="segrow">
+      <span class="pill ${s.status}">${s.status}</span>
+      <span class="pill" title="${esc(personaTitle(s.speaker))}">${esc(speakerTag(s.speaker))}</span>
+      <div style="flex:1">
+        <div style="font-size:13px">${esc(s.text.slice(0,140))}${s.text.length>140?"…":""}</div>
+        <input style="width:100%;margin-top:4px;${useDir?"":"opacity:.4"}" ${useDir?"":"disabled"}
+          value="${esc(s.direction||"")}" placeholder="acting direction / emotion — e.g. warm and steady, or [laugh]"
+          oninput="editSeg(${i},'direction',this.value)" onchange="renderVoiceSegs()">
+        <div class="flexwrap" style="margin-top:4px">
+          ${(s.versions||[]).map((v,k)=>`<span class="pill ${k===s.sel?"done":""}" style="cursor:pointer"
+            onclick="selectSegVersion(${i},${k})" title="use this take">v${k+1} · ${v.duration.toFixed(1)}s</span>`).join("")}
+          ${s.url?`<audio controls src="${s.url}"></audio>`:""}
+          <span class="muted" id="segInfo${i}"></span>
+        </div>
+      </div>
+      <button class="small" onclick="genSegBtn(${i})">${s.status==="done"?"↻ Re-roll":"Generate"}</button>
+    </div>`).join("");
+}
+function selectSegVersion(i,k){
+  const s=S.segments[i],v=(s.versions||[])[k];
+  if(!v)return;
+  s.sel=k;Object.assign(s,{file:v.file,url:v.url,duration:v.duration,words:v.words,status:"done",hash:segHash(i)});
+  S.voice.audio_url="";  // mix is stale until re-stitched
+  renderVoiceSegs();maybeStitch(true).catch(e=>$("vErr").textContent=e.message);saveProject();
+}
+async function genSegBtn(i){
+  const el=$("segInfo"+i);if(el)el.textContent="Generating…";
+  try{await genSeg(i);renderVoiceSegs();await maybeStitch();}
+  catch(e){$("vErr").textContent=e.message;}
+  if($("segInfo"+i))$("segInfo"+i).textContent="";
+}
+async function genSeg(i){
+  await ensureProject();
+  const s=S.segments[i];
+  let voice=S.voice.voices[s.speaker];
+  if(!voice&&cloneCapable(S.voice.engine))voice=S.voice.voices[s.speaker]="default";
+  if(!voice)throw new Error(`No voice selected for speaker ${s.speaker}`);
+  const d=await api("/api/tts/segment",{project:S.name,seg_index:i,engine:S.voice.engine,voice,
+    text:s.text,direction:S.voice.use_direction===false?"":(s.direction||""),controls:S.voice.controls,
+    prev_text:(S.segments[i-1]||{}).text||"",next_text:(S.segments[i+1]||{}).text||""});
+  s.versions=s.versions||[];
+  s.versions.push({file:d.file,url:d.url,duration:d.duration,words:d.words});
+  s.sel=s.versions.length-1;
+  Object.assign(s,{file:d.file,url:d.url,duration:d.duration,words:d.words,status:"done",hash:segHash(i)});
+  if(d.cost_cad)addCost(`Voice seg ${i+1} (${d.chars} chars)`,d.cost_cad);
+  S.voice.audio_url="";
+}
+let _stopBatch=false;
+function stopBatch(){
+  if(_stopBatch){  // second press: abort the image currently generating on the GPU
+    api("/api/image/cancel",{}).catch(()=>{});
+    toast("Cancelling the current image…");
+    return;
+  }
+  _stopBatch=true;
+  toast("Stopping after the current item — press Stop again to cancel the current image");
+}
+async function genAllSegs(){
+  if(S.voice.engine==="upload")return toast("Use Record / Upload for your own audio");
+  if(!S.segments.length){
+    if(!S.script.text.trim())return toast("Generate or paste a script first (tab 1)");
+    $("vInfo").textContent="Planning segments & images (automatic, one cheap AI call)…";
+    await runDirector();
+    if(!S.segments.length){$("vInfo").textContent="";return;}
+  }
+  $("vErr").textContent="";$("vGo").disabled=true;
+  _stopBatch=false;$("vStop").style.display="";
+  const todo=S.segments.map((s,i)=>s.status!=="done"?i:-1).filter(i=>i>=0);
+  const list=todo.length?todo:S.segments.map((_,i)=>i);
+  let done=0,stopped=false;
+  $("vProg").style.display="block";$("vProg").firstElementChild.style.width="2%";
+  try{
+    for(const i of list){
+      if(_stopBatch){stopped=true;break;}
+      $("vInfo").textContent=`Generating segment ${++done}/${list.length}…${S.voice.engine.startsWith("chatterbox")?" (local AI — slow on CPU)":""}`;
+      await genSeg(i);renderVoiceSegs();
+      $("vProg").firstElementChild.style.width=Math.round(done/list.length*95)+"%";
+    }
+    if(stopped){
+      $("vInfo").textContent=`Stopped — ${done} of ${list.length} done`;saveProject();
+    }else{
+      $("vInfo").textContent="Stitching full track…";
+      await maybeStitch(true);
+      $("vProg").firstElementChild.style.width="100%";
+      $("vInfo").textContent="Done — next: Images tab";markDone("voice");saveProject();
+    }
+  }catch(e){$("vErr").textContent=e.message;$("vInfo").textContent="";}
+  setTimeout(()=>$("vProg").style.display="none",1200);
+  $("vGo").disabled=false;$("vStop").style.display="none";_stopBatch=false;
+}
+async function maybeStitch(force){
+  if(S.segments.some(s=>s.status!=="done"))return;
+  if(S.voice.audio_url&&!force)return;
+  $("vInfo").textContent="Stitching full track…";
+  const d=await api("/api/tts/stitch",{project:S.name,files:S.segments.map(s=>s.file)});
+  let words=d.whisper_words;
+  if(!words){
+    words=[];let t=0;
+    S.segments.forEach((s,i)=>{
+      s.words.forEach(w=>words.push({word:w.word,start:+(w.start+t).toFixed(3),end:+(w.end+t).toFixed(3)}));
+      t+=s.duration+(i<S.segments.length-1?d.gap:0);
+    });
+  }
+  S.voice.audio_url=d.audio_url;S.voice.duration=d.duration;S.voice.words=words;S.voice.uploaded=false;
+  renderVoiceSegs();await retimeBeats();saveProject();
+}
+let recorder=null,recChunks=[];
+async function startRec(){
+  if(recorder){recorder.stop();return;}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    recorder=new MediaRecorder(stream);recChunks=[];
+    recorder.ondataavailable=e=>recChunks.push(e.data);
+    recorder.onstop=async()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      const blob=new Blob(recChunks,{type:recorder.mimeType});recorder=null;
+      $("recBtn").textContent="● Record my voice";
+      await uploadAudio(new File([blob],"recording.webm"));
+    };
+    recorder.start();$("recBtn").textContent="■ Stop recording";toast("Recording… read your script, then press Stop");
+  }catch(e){$("vErr").textContent="Microphone access failed: "+e.message;}
+}
+async function uploadAudio(file){
+  if(!file)return;
+  await ensureProject();
+  $("vInfo").textContent="Uploading + processing…";$("vErr").textContent="";
+  try{
+    const fd=new FormData();fd.append("project",S.name);fd.append("script",S.script.text||"");fd.append("file",file);
+    const r=await fetch("/api/tts/upload",{method:"POST",body:fd});
+    const d=await r.json();if(!r.ok)throw new Error(d.detail||"upload failed");
+    S.voice.audio_url=d.audio_url;S.voice.duration=d.duration;S.voice.words=d.words;S.voice.uploaded=true;
+    S.segments.forEach(s=>s.status="pending");
+    renderVoiceSegs();$("vResult").style.display="block";$("vAudio").src=d.audio_url;$("vDur").textContent=fmtTime(d.duration);
+    await retimeBeats();
+    $("vInfo").textContent="Done";markDone("voice");saveProject();
+  }catch(e){$("vErr").textContent=e.message;$("vInfo").textContent="";}
+}
+// ---------- images / beats ----------
+function imgModel(){return MODELS.image.find(m=>m.id===S.imagecfg.model);}
+function syncImagesUI(){
+  $("iModel").innerHTML=MODELS.image.sort((a,b)=>a.price_image-b.price_image).map(m=>
+    `<option value="${m.id}" ${m.id===S.imagecfg.model?"selected":""}>${esc(m.label)} — ${m.price_image?`$${m.price_image_cad.toFixed(3)} CAD/img`:"free"}${m.max_refs?` · refs ✓`:""}</option>`).join("");
+  onImageModel(true);
+  $("iPre").value=S.imagecfg.preprompt||"";
+  $("refUse").checked=S.imagecfg.use_refs!==false;
+  loadRefs();loadChars();renderBeats();
+}
+let REFS=[];
+async function loadRefs(){
+  if(!S.name){renderRefs();return;}
+  try{REFS=(await api(`/api/refs?project=${encodeURIComponent(S.name)}`)).refs;}catch(e){REFS=[];}
+  renderRefs();
+}
+function renderRefs(){
+  const m=imgModel()||{};
+  $("refNote").textContent=(m.max_refs
+    ?`${m.label||"This model"} takes up to ${m.max_refs} reference images total (characters below get priority, style images fill the rest) — sent with every new scene so the look stays consistent. Click a thumbnail to remove it.`
+    :`${m.label||"This model"} doesn't take reference images.`)
+    +(m.can_edit===false?" ✎ EDIT beats automatically use Nano Banana (Gemini) — that's the model built for editing.":"");
+  $("refThumbs").innerHTML=REFS.map(r=>`
+    <div class="thumb" title="click = enlarge · ✕ = remove">
+      <img src="${r.url}" loading="lazy" onclick="enlarge('${r.url}')">
+      <span class="delx" onclick="event.stopPropagation();delRef('${r.file}')">✕</span></div>`).join("");
+}
+async function uploadRefs(files){
+  if(!files||!files.length)return;
+  await ensureProject();
+  const fd=new FormData();fd.append("project",S.name);
+  for(const f of files)fd.append("files",f);
+  const r=await fetch("/api/refs/upload",{method:"POST",body:fd});
+  const d=await r.json();if(!r.ok)return toast(d.detail||"upload failed");
+  REFS=d.refs;renderRefs();toast(`${REFS.length} reference image(s) ready ✔`);
+}
+async function delRef(fn){
+  const d=await api(`/api/refs/${encodeURIComponent(S.name)}/${encodeURIComponent(fn)}`,null,"DELETE");
+  REFS=d.refs;renderRefs();
+}
+// ----- characters (named reference images — the filename IS the name) -----
+let CHARS=[],_charName="";
+async function loadChars(){
+  if(!S.name){CHARS=[];renderChars();return;}
+  try{CHARS=(await api(`/api/chars?project=${encodeURIComponent(S.name)}`)).chars;}catch(e){CHARS=[];}
+  renderChars();
+}
+function renderChars(){
+  const m=imgModel()||{};
+  const cap=m.ref_characters||m.max_refs||0;
+  $("charNote").textContent=cap
+    ?`Named character images — when an image prompt mentions the name, the model draws exactly this character (same face, hair, outfit). ${m.label||"This model"} takes up to ${cap} character image(s)${m.ref_characters?" (dedicated character slots)":" (shared with style references)"}. Click the name to rename, right-click to enlarge.`
+    :`${m.label||"This model"} doesn't take reference images — characters won't be sent. Pick Nano Banana or FLUX.2 Klein for character consistency.`;
+  $("charThumbs").innerHTML=CHARS.map(c=>`
+    <div class="thumb" title="click = enlarge · name = rename · ✕ = remove">
+      <img src="${c.url}" loading="lazy" onclick="enlarge('${c.url}')">
+      <span class="v" style="cursor:pointer" onclick="renameChar('${c.file}','${esc(c.name)}')">${esc(c.name)}</span>
+      <span class="delx" onclick="event.stopPropagation();delChar('${c.file}')">✕</span>
+    </div>`).join("");
+}
+function addCharacter(){
+  const n=prompt("Character name (the image prompts use this name — e.g. Maya):","");
+  if(n===null)return;
+  _charName=n.trim();
+  document.getElementById("charUpload").click();
+}
+async function uploadChar(file){
+  if(!file)return;
+  await ensureProject();
+  const fd=new FormData();fd.append("project",S.name);fd.append("name",_charName);fd.append("file",file);
+  const r=await fetch("/api/chars/upload",{method:"POST",body:fd});
+  const d=await r.json();if(!r.ok)return toast(d.detail||"upload failed");
+  $("charUpload").value="";_charName="";
+  CHARS=d.chars;renderChars();toast("Character added ✔ — mention the name in image prompts to use them");
+}
+async function delChar(fn){
+  const d=await api(`/api/chars/${encodeURIComponent(S.name)}/${encodeURIComponent(fn)}`,null,"DELETE");
+  CHARS=d.chars;renderChars();
+}
+async function renameChar(fn,cur){
+  const n=prompt("Character name:",cur);
+  if(n===null||!n.trim()||n.trim()===cur)return;
+  try{
+    const d=await api("/api/chars/rename",{project:S.name,file:fn,name:n.trim()});
+    CHARS=d.chars;renderChars();
+  }catch(e){toast(e.message);}
+}
+let _fluxWarm=false;
+function onImageModel(keep){
+  if(!keep){S.imagecfg.model=$("iModel").value;S.imagecfg.controls={};}
+  const m=imgModel();if(!m)return;
+  if(m.provider==="local_flux"&&!_fluxWarm){
+    _fluxWarm=true;
+    api("/api/image/warmup",{}).then(()=>toast("Loading FLUX into memory in the background — first image will be ready faster")).catch(()=>{_fluxWarm=false;});
+  }
+  $("iRatio").innerHTML=m.ratios.map(r=>`<option ${r===S.imagecfg.ratio?"selected":""}>${r}</option>`).join("");
+  if(!m.ratios.includes(S.imagecfg.ratio))S.imagecfg.ratio=m.ratios[0];
+  renderControls("iControls",m.controls,S.imagecfg.controls,"image");
+  $("iGroundWrap").style.display=m.grounding?"":"none";
+  $("iGround").checked=!!S.imagecfg.grounding;
+  if(!m.grounding)S.imagecfg.grounding=false;
+  renderRefs();renderChars();
+}
+function fmtTime(s){const m=Math.floor(s/60),x=Math.round(s%60);return `${m}:${String(x).padStart(2,"0")}`;}
+function renderBeats(){
+  $("thumbCard").style.display=S.director.done?"block":"none";
+  if(S.director.done){
+    $("tPrompt").value=S.director.thumbnail_prompt||"";
+    $("thumbThumbs").innerHTML=S.thumb.versions.map((v,k)=>`
+      <div class="thumb ${k===S.thumb.selected?"sel":""}" onclick="S.thumb.selected=${k};renderBeats()" oncontextmenu="event.preventDefault();enlarge('${v}')">
+        <img src="${v}" loading="lazy"><span class="v">v${k+1}</span></div>`).join("");
+  }
+  const el=$("beatList");
+  if(!S.beats.length){el.innerHTML=`<div class="muted" style="padding:20px;text-align:center">No image plan yet — just press "Generate all missing images" (planning is automatic).</div>`;return;}
+  const timed=S.voice.words.length>0;
+  el.innerHTML=S.beats.map((b,i)=>`
+  <div class="scene">
+    <div class="head">
+      <strong>Image ${i+1}</strong>
+      <span class="badge" style="${b.shot==='edit'?'color:var(--accent);border-color:var(--accent)':''}" title="${b.shot==='edit'?'Edits the image of beat '+(b.edit_of+1)+' instead of drawing a new scene':'Brand-new scene'}">${b.shot==="edit"?`✎ EDIT of #${b.edit_of+1}`:"NEW scene"}</span>
+      <span class="badge">${timed?`${fmtTime(b.start)} → ${fmtTime(b.end)} · ${b.duration.toFixed(1)}s`:"awaiting audio"}</span>
+      <span class="badge ${esc(b.energy)}">${esc(b.energy)}</span>
+      <select class="small" onchange="S.beats[${i}].motion=this.value" title="Motion override">
+        <option value="" ${!b.motion?"selected":""}>motion: global</option>
+        <option value="kenburns_fade" ${b.motion==="kenburns_fade"?"selected":""}>Ken Burns+fade</option>
+        <option value="kenburns" ${b.motion==="kenburns"?"selected":""}>Ken Burns</option>
+        <option value="fade" ${b.motion==="fade"?"selected":""}>static+fade</option>
+        <option value="none" ${b.motion==="none"?"selected":""}>static</option>
+      </select>
+      <select class="small" onchange="setBeatSfx(${i},this.value)" title="Sound effect when this image appears (file must exist in the sfx/ folder)">
+        <option value="">sfx: none</option>
+        ${b.sfx&&!SFX.find(s=>s.name===b.sfx)?`<option value="${esc(b.sfx)}" selected>${esc(b.sfx)} (no file!)</option>`:""}
+        ${SFX.map(s=>`<option value="${s.name}" ${b.sfx===s.name?"selected":""}>${s.name}${s.available?"":" (missing)"}</option>`).join("")}
+      </select>
+      <span style="flex:1"></span>
+      <button class="small" onclick="genImage(${i}).then(renderBeats).catch(()=>{})">${b.versions.length?"↻ Reroll":"Generate image"}</button>
+      <button class="small" onclick="mergeBeat(${i})" ${i>=S.beats.length-1?"disabled":""}>Merge ↓</button>
+      <button class="small" onclick="splitBeat(${i})">Split</button>
+    </div>
+    <label>Narration this image covers (edit, then "Re-time")</label>
+    <textarea rows="2" oninput="S.beats[${i}].text=this.value">${esc(b.text)}</textarea>
+    <label>${b.shot==="edit"?`Edit instruction (what to change in image #${b.edit_of+1})`:"Image prompt"}</label>
+    <textarea rows="2" oninput="S.beats[${i}].image_prompt=this.value">${esc(b.image_prompt)}</textarea>
+    <div class="thumbs">${b.versions.map((v,k)=>`
+      <div class="thumb ${k===b.selected?"sel":""}" onclick="S.beats[${i}].selected=${k};renderBeats();saveProject()" oncontextmenu="event.preventDefault();enlarge('${v}')" title="click = use · right-click = enlarge">
+        <img src="${v}" loading="lazy"><span class="v">v${k+1}</span></div>`).join("")}
+      ${b.versions.length?`<div class="thumb" style="display:flex;align-items:center;justify-content:center" onclick="enlarge('${b.versions[b.selected]||b.versions[0]}')">🔍</div>`:""}
+    </div>
+    <div class="muted" id="beatInfo${i}"></div>
+  </div>`).join("");
+}
+function enlarge(url){$("lightImg").src=url;$("lightbox").classList.add("open");}
+async function retimeBeats(notify){
+  if(!S.beats.length||!S.voice.words.length)return;
+  try{
+    const d=await api("/api/beats/retime",{texts:S.beats.map(b=>b.text),words:S.voice.words,duration:S.voice.duration});
+    d.spans.forEach((sp,i)=>Object.assign(S.beats[i],sp));
+    renderBeats();if(notify)toast("Beats re-timed ✔");
+  }catch(e){if(notify)toast("Re-time failed: "+e.message);}
+}
+function mergeBeat(i){
+  const a=S.beats[i],b=S.beats[i+1];
+  a.text+=" "+b.text;a.end=b.end||a.end;a.duration=+((a.end-a.start).toFixed(3));
+  S.beats.splice(i+1,1);renderBeats();saveProject();
+}
+function splitBeat(i){
+  const b=S.beats[i];
+  const parts=b.text.match(/[^.!?]+[.!?]*\s*/g)||[b.text];
+  if(parts.length<2)return toast("Single sentence — edit the text to split mid-sentence, then Re-time");
+  let best=1,bestDiff=1e9,acc=0;const total=b.text.length;
+  for(let k=0;k<parts.length-1;k++){acc+=parts[k].length;const diff=Math.abs(acc-total/2);if(diff<bestDiff){bestDiff=diff;best=k+1;}}
+  const t1=parts.slice(0,best).join("").trim(),t2=parts.slice(best).join("").trim();
+  const b2={text:t2,image_prompt:b.image_prompt,energy:b.energy,shot:b.shot||"new",edit_of:b.edit_of??-1,sfx:"",start:0,end:0,duration:0,versions:[],selected:-1,motion:b.motion};
+  b.text=t1;
+  S.beats.splice(i+1,0,b2);renderBeats();retimeBeats();saveProject();
+}
+function setBeatSfx(i,v){
+  S.beats[i].sfx=v;
+  const s=SFX.find(x=>x.name===v);
+  if(v&&s&&!s.available)toast(`"${v}" has no file yet — drop ${v}.mp3 into the sfx/ folder or it will be skipped at render.`);
+  saveProject();
+}
+function editBaseFile(i){
+  // for an EDIT beat: filename of the base beat's selected image (must exist)
+  const b=S.beats[i];
+  if(b.shot!=="edit"||b.edit_of<0||b.edit_of>=S.beats.length)return "";
+  const base=S.beats[b.edit_of];
+  const v=base.versions[base.selected]??base.versions[base.versions.length-1];
+  return v?v.split("/").pop():"";
+}
+async function genImage(i){
+  await ensureProject();
+  const b=S.beats[i];
+  let edit_from="";
+  if(b.shot==="edit"){
+    edit_from=editBaseFile(i);
+    if(!edit_from){
+      $("iErr").textContent=`Beat ${i+1} edits image #${b.edit_of+1}, which has no image yet — generate that one first (or use "Generate all", which goes in order).`;
+      throw new Error("missing edit base");
+    }
+  }
+  const info=$("beatInfo"+i);if(info)info.textContent=b.shot==="edit"?"Editing image…":"Generating…";
+  try{
+    const d=await api("/api/image",{project:S.name,beat_index:i,model:S.imagecfg.model,
+      preprompt:txt(S.imagecfg.preprompt),bible:txt(S.director.bible),prompt:txt(b.image_prompt),
+      ratio:S.imagecfg.ratio,controls:S.imagecfg.controls,use_refs:S.imagecfg.use_refs!==false,
+      grounding:!!S.imagecfg.grounding,edit_from});
+    b.versions.push(d.url);b.selected=b.versions.length-1;
+    addCost(`Image ${i+1}${b.shot==="edit"?" (edit)":""}`,d.cost_cad);saveProject();
+  }catch(e){if($("beatInfo"+i))$("beatInfo"+i).textContent="";$("iErr").textContent=`Beat ${i+1}: ${e.message}`;throw e;}
+}
+async function genAllImages(){
+  if(!S.beats.length){
+    if(!S.script.text.trim())return toast("Generate or paste a script first (tab 1)");
+    $("iInfo").textContent="Planning images (automatic)…";
+    await runDirector();renderBeats();
+    if(!S.beats.length){$("iInfo").textContent="";return;}
+  }
+  $("iErr").textContent="";$("iGoAll").disabled=true;
+  _stopBatch=false;$("iStop").style.display="";
+  const missing=S.beats.map((b,i)=>b.versions.length?-1:i).filter(i=>i>=0);
+  const list=missing.length?missing:S.beats.map((_,i)=>i);
+  let done=0,stopped=false;
+  for(const i of list){
+    if(_stopBatch){stopped=true;break;}
+    $("iInfo").textContent=`Image ${++done}/${list.length} (beat ${i+1})…`;
+    try{await genImage(i);renderBeats();}catch(e){break;}
+  }
+  $("iInfo").textContent=stopped?`Stopped — ${done} of ${list.length} done`:"";
+  $("iGoAll").disabled=false;$("iStop").style.display="none";_stopBatch=false;
+  markDone("images");
+}
+async function genThumb(){
+  await ensureProject();
+  try{
+    const d=await api("/api/image",{project:S.name,beat_index:-1,model:S.imagecfg.model,
+      preprompt:txt(S.imagecfg.preprompt),bible:txt(S.director.bible),prompt:$("tPrompt").value,
+      ratio:S.imagecfg.ratio,controls:S.imagecfg.controls,use_refs:S.imagecfg.use_refs!==false});
+    S.thumb.versions.push(d.url);S.thumb.selected=S.thumb.versions.length-1;
+    addCost("Thumbnail",d.cost_cad);renderBeats();saveProject();
+  }catch(e){$("iErr").textContent="Thumbnail: "+e.message;}
+}
+// ---------- music / compile ----------
+async function uploadMusic(file){
+  if(!file)return;
+  await ensureProject();
+  const fd=new FormData();fd.append("project",S.name);fd.append("file",file);
+  const r=await fetch("/api/music/upload",{method:"POST",body:fd});
+  const d=await r.json();if(!r.ok)return toast(d.detail||"upload failed");
+  S.music.file=d.file;$("mFile").textContent=d.file;toast("Music uploaded ✔");saveProject();
+}
+function syncCompileUI(){
+  $("cRes").value=S.compile.resolution;$("cFps").value=S.compile.fps||30;
+  $("cMotion").value=S.compile.motion;$("cScale").value=S.compile.scale_mode||"fill";
+  $("cSubs").value=S.compile.subtitles;$("cSubSize").value=S.compile.sub_size||"medium";
+  $("cMissing").value=S.compile.missing||"neighbor";
+  $("mFile").textContent=S.music.file||"none";
+  $("mVol").value=S.music.volume;$("mVolV").textContent=S.music.volume;
+  $("mDuck").checked=S.music.duck!==false;
+  S.sfx=S.sfx||{enabled:true,volume:0.5};
+  $("xOn").checked=S.sfx.enabled!==false;
+  $("xVol").value=S.sfx.volume;$("xVolV").textContent=S.sfx.volume;
+  const used=(S.beats||[]).filter(b=>b.sfx).length;
+  const missing=(S.beats||[]).filter(b=>b.sfx&&!(SFX.find(s=>s.name===b.sfx)||{}).available).length;
+  $("xCount").textContent=used?`${used} effect(s) planned${missing?` · ${missing} missing from sfx/ folder (will be skipped)`:""}`:"none planned";
+}
+let pollH=null;
+async function renderVideo(){
+  await ensureProject();
+  if(!S.voice.audio_url&&!S.voice.duration)return toast("Generate the voice first (tab 3)");
+  // never compile with stale audio: all segments must be done + selected takes stitched
+  if(S.voice.engine!=="upload"&&!S.voice.uploaded&&S.segments.length){
+    if(S.segments.some(s=>s.status!=="done"))
+      return toast("Some voice segments are stale or pending — regenerate them in the Voice tab first");
+    if(!S.voice.audio_url){
+      $("cInfo").textContent="Re-stitching voice track with your selected takes…";
+      try{await maybeStitch(true);}catch(e){return toast("Stitch failed: "+e.message);}
+      $("cInfo").textContent="";
+    }
+  }
+  S.compile={resolution:$("cRes").value,fps:parseInt($("cFps").value),motion:$("cMotion").value,
+    scale_mode:$("cScale").value,subtitles:$("cSubs").value,sub_size:$("cSubSize").value,
+    missing:$("cMissing").value};
+  if(!S.beats.some(b=>b.selected>=0))return toast("Generate at least one image first (tab 4)");
+  $("cErr").textContent="";$("cGo").disabled=true;
+  // Edit-chains look best as in-place changes: edit beats + their base default to static
+  // (hard cut = the image "changes" live). A user-set per-beat motion still wins.
+  const editsInvolved=new Set();
+  S.beats.forEach(b=>{if(b.shot==="edit"){editsInvolved.add(b);if(S.beats[b.edit_of])editsInvolved.add(S.beats[b.edit_of]);}});
+  const beatsPayload=S.beats.map(b=>Object.assign({},b,{motion:b.motion||(editsInvolved.has(b)?"none":"")}));
+  try{
+    await api("/api/render",{project:S.name,beats:beatsPayload,words:S.voice.words,
+      resolution:S.compile.resolution,motion:S.compile.motion,scale_mode:S.compile.scale_mode,
+      subtitles:S.compile.subtitles,sub_size:S.compile.sub_size,fps:S.compile.fps,
+      missing:S.compile.missing,music:S.music,sfx:S.sfx||{enabled:true,volume:0.5},
+      script:S.script.text||"",duration:S.voice.duration||0});
+    $("cProg").style.display="block";
+    pollH=setInterval(async()=>{
+      const st=await api(`/api/render/status?project=${encodeURIComponent(S.name)}`);
+      $("cInfo").textContent=st.stage;
+      $("cProg").firstElementChild.style.width=st.progress+"%";
+      if(st.error){clearInterval(pollH);$("cErr").textContent=st.error;$("cGo").disabled=false;}
+      else if(st.progress>=100){clearInterval(pollH);$("cGo").disabled=false;
+        $("cResult").style.display="block";$("cVideo").src=st.url;markDone("compile");saveProject();toast("Video rendered ✔");}
+    },1500);
+  }catch(e){$("cErr").textContent=e.message;$("cGo").disabled=false;}
+}
+function dl(what){window.location=`/api/export/${encodeURIComponent(S.name)}?what=${what}`;}
+function addCost(label,cad){if(cad>0)S.costs.push({label,cad});renderTotal();}
+function renderTotal(){
+  const t=S.costs.reduce((a,c)=>a+c.cad,0);
+  $("totalCost").textContent=t?`spent: $${t.toFixed(3)} CAD`:"";
+}
+function renderLedger(){
+  $("ledger").innerHTML=S.costs.length?S.costs.map(c=>`${esc(c.label)} — $${c.cad.toFixed(4)} CAD`).join("<br>")+
+    `<br><strong style="color:var(--green)">Total: $${S.costs.reduce((a,c)=>a+c.cad,0).toFixed(4)} CAD</strong>`:"Nothing spent yet.";
+}
+function markDone(tab){document.querySelector(`.tab[data-page="${tab}"]`)?.classList.add("done");}
+// ---------- settings ----------
+function syncSettingsUI(){
+  $("kOpenai").value=SETTINGS.keys.openai||"";$("kClaude").value=SETTINGS.keys.claude||"";
+  $("kGemini").value=SETTINGS.keys.gemini||"";$("kEleven").value=SETTINGS.keys.elevenlabs||"";
+  $("kAzure").value=SETTINGS.keys.azure||"";$("kAzureRegion").value=SETTINGS.azure_region||"eastus";
+  $("kReplicate").value=SETTINGS.keys.replicate||"";
+  $("kFx").value=SETTINGS.usd_cad;
+  $("kWhisper").value=String(!!SETTINGS.align_with_whisper);
+  renderPricing();
+}
+function renderPricing(){
+  const rows=[],ov=SETTINGS.price_overrides||{};
+  const row=(m,fields)=>`<tr><td>${esc(m.label)}</td><td class="muted">${m.provider}</td>${fields.map(f=>
+    `<td>${m[f]!==undefined?`<input type="number" step="0.001" value="${(ov[m.id]?.[f] ?? m[f])}" data-mid="${m.id}" data-f="${f}" onchange="priceChange(this)">`:""}</td>`).join("")}</tr>`;
+  rows.push(`<table class="pricing"><tr><th>Text model</th><th></th><th>$ in/M tok</th><th>$ out/M tok</th></tr>`);
+  MODELS.text.forEach(m=>rows.push(row(m,["price_in","price_out"])));
+  rows.push(`</table><br><table class="pricing"><tr><th>TTS engine</th><th></th><th>$/M chars</th></tr>`);
+  MODELS.tts.forEach(m=>rows.push(row(m,["price_chars"])));
+  rows.push(`</table><br><table class="pricing"><tr><th>Image model</th><th></th><th>$/image</th></tr>`);
+  MODELS.image.forEach(m=>rows.push(row(m,["price_image"])));
+  rows.push("</table>");
+  $("pricing").innerHTML=rows.join("");
+}
+function priceChange(el){
+  SETTINGS.price_overrides=SETTINGS.price_overrides||{};
+  const o=SETTINGS.price_overrides[el.dataset.mid]||{};
+  o[el.dataset.f]=parseFloat(el.value);
+  SETTINGS.price_overrides[el.dataset.mid]=o;
+}
+async function saveSettings(){
+  SETTINGS.keys={openai:$("kOpenai").value.trim(),claude:$("kClaude").value.trim(),
+    gemini:$("kGemini").value.trim(),elevenlabs:$("kEleven").value.trim(),
+    azure:$("kAzure").value.trim(),replicate:$("kReplicate").value.trim()};
+  SETTINGS.azure_region=$("kAzureRegion").value.trim()||"eastus";
+  SETTINGS.usd_cad=parseFloat($("kFx").value)||1.40;
+  SETTINGS.align_with_whisper=$("kWhisper").value==="true";
+  const d=await api("/api/settings",{settings:SETTINGS},"PUT");
+  MODELS=d.models;VOICE_CACHE={};
+  $("kInfo").textContent="Saved ✔";setTimeout(()=>$("kInfo").textContent="",2000);
+  syncScriptUI();syncVoiceUI();syncImagesUI();
+}
+async function liveModels(p){
+  $("liveOut").textContent="Fetching…";
+  try{const d=await api("/api/models/live",{provider:p});
+    $("liveOut").textContent=Array.isArray(d.models)?d.models.join("\n"):JSON.stringify(d.models);}
+  catch(e){$("liveOut").textContent=e.message;}
+}
+// ---------- projects / profiles ----------
+async function ensureProject(){
+  if(S.name)return;
+  let base=(S.script.topic||"Untitled").replace(/[^\w\- ]/g,"").trim().slice(0,40)||"Untitled";
+  let name=base,k=2;
+  while(BOOT.projects.includes(name))name=base+" "+(k++);
+  const d=await api("/api/project/new",{name});
+  S.name=d.state.name;BOOT.projects.push(S.name);fillProjects();$("projSel").value=S.name;
+  toast(`Project "${S.name}" created automatically`);
+}
+async function newProject(){
+  const name=prompt("New project name:");if(!name)return;
+  try{
+    const d=await api("/api/project/new",{name});
+    BOOT.projects.push(d.state.name);
+    S=defaultState();S.name=d.state.name;
+    fillProjects();$("projSel").value=S.name;
+    syncAll();await saveProject();toast(`Project "${S.name}" created`);
+  }catch(e){toast(e.message);}
+}
+function migrate(st){
+  if(st.scenes&&!st.beats){
+    st.beats=st.scenes.map(sc=>({text:sc.text,image_prompt:sc.image_prompt||"",energy:"calm",
+      start:sc.start||0,end:sc.end||0,duration:sc.duration||0,
+      versions:sc.versions||[],selected:sc.selected??-1,motion:sc.motion||""}));
+    delete st.scenes;
+  }
+  if(st.director)["bible","title","thumbnail_prompt"].forEach(k=>{st.director[k]=txt(st.director[k]);});
+  (st.beats||[]).forEach(b=>{b.image_prompt=txt(b.image_prompt);b.text=txt(b.text);
+    b.shot=b.shot==="edit"?"edit":"new";b.edit_of=b.edit_of??-1;b.sfx=b.sfx||"";});
+  (st.segments||[]).forEach(s=>{s.direction=txt(s.direction);s.text=txt(s.text);
+    if(s.file&&!(s.versions||[]).length){s.versions=[{file:s.file,url:s.url,duration:s.duration,words:s.words}];s.sel=0;}});
+  // retired models/engines -> current line-up
+  if(st.imagecfg&&st.imagecfg.model&&!MODELS.image.find(m=>m.id===st.imagecfg.model)){
+    st.imagecfg.model=/3.?-?pro|ultra/.test(st.imagecfg.model)?"gemini-3-pro-image"
+      :/3\.1|gpt-image/.test(st.imagecfg.model)?"gemini-3.1-flash-image":"gemini-2.5-flash-image";
+    st.imagecfg.controls={};
+  }
+  if(st.voice&&st.voice.engine&&!MODELS.tts.find(m=>m.id===st.voice.engine)){
+    st.voice.engine="edge";st.voice.controls={};st.voice.voices={};
+  }
+  return st;
+}
+async function openProject(name){
+  try{
+    const d=await api(`/api/project/${encodeURIComponent(name)}`);
+    const st=migrate(d.state),base=defaultState();
+    S=Object.assign(base,st);
+    S.script=Object.assign(base.script,st.script||{});
+    S.script.personas=Object.assign({general:"",speakers:{}},S.script.personas||{});
+    S.director=Object.assign(base.director,st.director||{});
+    S.voice=Object.assign(base.voice,st.voice||{});
+    S.imagecfg=Object.assign(base.imagecfg,st.imagecfg||{});
+    S.music=Object.assign(base.music,st.music||{});
+    S.compile=Object.assign(base.compile,st.compile||{});
+    S.thumb=st.thumb||{versions:[],selected:-1};
+    S.segments=st.segments||[];S.beats=st.beats||[];S.costs=st.costs||[];S.name=name;
+    syncAll();
+  }catch(e){toast(e.message);}
+}
+async function saveProject(notify){
+  if(!S||!S.name)return;
+  try{await api(`/api/project/${encodeURIComponent(S.name)}/save`,{state:S});if(notify)toast("Saved ✔");}
+  catch(e){if(notify)toast("Save failed: "+e.message);}
+}
+async function saveAsProject(){
+  if(!S.name)return toast("Nothing to save yet");
+  const name=prompt("Save project as:",S.name+" copy");if(!name)return;
+  try{
+    const d=await api(`/api/project/${encodeURIComponent(S.name)}/saveas`,{new_name:name,state:S});
+    S=migrate(d.state);BOOT.projects.push(S.name);fillProjects();$("projSel").value=S.name;syncAll();toast(`Saved as "${S.name}"`);
+  }catch(e){toast(e.message);}
+}
+async function deleteProject(){
+  if(!S.name)return;
+  if(!confirm(`Delete project "${S.name}" and all its files?`))return;
+  await api(`/api/project/${encodeURIComponent(S.name)}`,null,"DELETE");
+  BOOT.projects=BOOT.projects.filter(p=>p!==S.name);
+  if(BOOT.projects.length){fillProjects();openProject(BOOT.projects[0]);}
+  else location.reload();
+}
+function fillProjects(){
+  $("projSel").innerHTML=BOOT.projects.map(p=>`<option>${esc(p)}</option>`).join("");
+  if(S)$("projSel").value=S.name;
+}
+function fillProfiles(){
+  $("profSel").innerHTML=Object.keys(PROFILES).map(p=>
+    `<option value="${esc(p)}">${esc(p)}${DEFAULT_PROFILES.includes(p)?"":" (custom)"}</option>`).join("");
+}
+function applyProfile(){
+  const name=$("profSel").value,p=PROFILES[name];if(!p)return;
+  Object.assign(S.script,JSON.parse(JSON.stringify(p.script||{})));
+  S.script.personas=Object.assign({general:"",speakers:{}},S.script.personas||{});
+  Object.assign(S.voice,JSON.parse(JSON.stringify(p.voice||{})));
+  Object.assign(S.imagecfg,JSON.parse(JSON.stringify(p.images||{})));
+  Object.assign(S.compile,JSON.parse(JSON.stringify(p.compile||{})));
+  if(p.director)Object.assign(S.director,JSON.parse(JSON.stringify(p.director)));
+  if(p.music)Object.assign(S.music,JSON.parse(JSON.stringify(p.music)));
+  syncAll();toast(`Profile "${name}" applied`);saveProject();
+}
+async function saveProfile(){
+  const name=prompt("Profile name:");if(!name)return;
+  const data={script:{provider:S.script.provider,model:S.script.model,preprompt:$("sPre").value,
+      controls:S.script.controls},
+    director:{provider:S.director.provider,model:S.director.model,min_sec:parseFloat($("dMin").value)||3,max_sec:parseFloat($("dMax").value)||12,pacing:S.director.pacing||"normal"},
+    voice:{engine:S.voice.engine,voices:S.voice.voices,controls:S.voice.controls},
+    images:{model:S.imagecfg.model,ratio:S.imagecfg.ratio,preprompt:$("iPre").value},
+    music:{volume:S.music.volume,duck:S.music.duck},
+    compile:{resolution:$("cRes").value,motion:$("cMotion").value,scale_mode:$("cScale").value,
+      subtitles:$("cSubs").value,missing:$("cMissing").value}};
+  await api("/api/profiles",{name,data});
+  PROFILES[name]=data;fillProfiles();$("profSel").value=name;toast(`Profile "${name}" saved`);
+}
+function syncAll(){fillProjects();syncScriptUI();renderDirector();syncVoiceUI();syncImagesUI();syncCompileUI();renderTotal();}
+// ---------- boot ----------
+(async function boot(){
+  BOOT=await api("/api/bootstrap");
+  MODELS=BOOT.models;PROFILES=BOOT.profiles;DEFAULT_PROFILES=BOOT.default_profiles;SETTINGS=BOOT.settings;
+  try{SFX=(await api("/api/sfx")).sfx;}catch(e){SFX=[];}
+  fillProfiles();syncSettingsUI();
+  $("projSel").onchange=e=>openProject(e.target.value);
+  if(BOOT.projects.length){fillProjects();await openProject(BOOT.projects[0]);}
+  else{S=defaultState();syncAll();
+    setTimeout(()=>toast("Welcome! Set a topic and generate — a project is created automatically.",6000),400);}
+  if(!SETTINGS.keys.openai&&!SETTINGS.keys.gemini&&!SETTINGS.keys.claude)showTab("settings");
+})();
+</script>
+</body>
+</html>

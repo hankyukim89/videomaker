@@ -1,0 +1,12 @@
+fastapi>=0.110
+uvicorn>=0.29
+requests>=2.31
+edge-tts>=6.1
+imageio-ffmpeg>=0.4.9
+python-multipart>=0.0.9
+azure-cognitiveservices-speech>=1.40
+# Optional — Chatterbox Turbo local TTS (free, voice cloning). Big install (PyTorch, ~2GB+):
+#   .venv\Scripts\pip install chatterbox-tts
+# Optional — FLUX.2 Klein 4B local images (free, generation + editing on your GPU).
+# First image downloads ~9 GB of weights; 8 GB VRAM cards run it 4-bit quantised:
+#   .venv\Scripts\pip install -U diffusers transformers accelerate bitsandbytes

@@ -1,0 +1,8 @@
+projects/
+voices/
+__pycache__/
+.venv/
+venv/
+static/_preview/
+*.json
+!requirements.txt
